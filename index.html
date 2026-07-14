@@ -154,6 +154,8 @@ textarea, select { width:100%; padding:9px 10px; border-radius:10px; border:1px 
 .news-title { font-weight:700; font-size:0.9rem; margin-bottom:4px; color: var(--text); }
 .news-summary { font-size:0.82rem; line-height:1.45; color: var(--text-muted); }
 .news-date { font-size:0.7rem; margin-top:6px; color: var(--text-dim); }
+.card-avatar { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.85rem; color:#1a0f08; flex-shrink:0; margin-bottom:8px; font-family:'Bricolage Grotesque',sans-serif; }
+.install-btn-wrap { display:flex; }
 </style>
 </head>
 <body>
@@ -180,6 +182,12 @@ textarea, select { width:100%; padding:9px 10px; border-radius:10px; border:1px 
 
 <h2 class="quiet" style="margin-top:0;">Cuplurile din sezon</h2>
 <div class="couples-strip" id="couples-strip"><p class="muted">Se încarcă...</p></div>
+
+<h2 class="quiet">Ispite feminine</h2>
+<div class="couples-strip" id="temptations-fem-strip"><p class="muted">Se încarcă...</p></div>
+
+<h2 class="quiet">Ispite masculine</h2>
+<div class="couples-strip" id="temptations-masc-strip"><p class="muted">Se încarcă...</p></div>
 
 <h2 class="quiet">📰 Bârfe de pe insulă</h2>
 <div id="news-feed"><p class="muted">Se încarcă...</p></div>
@@ -253,6 +261,7 @@ textarea, select { width:100%; padding:9px 10px; border-radius:10px; border:1px 
 <p class="muted"><b style="color:var(--text);">UID-ul tău:</b> <span id="my-uid"></span> — pune-l în ADMIN_UIDS din firebase-config.js și în firestore.rules</p>
 
 <button id="btn-seed-couples">Inițializează cele 5 cupluri cunoscute</button>
+<button id="btn-seed-temptations" style="margin-left:8px;">Inițializează cele 18 ispite cunoscute</button>
 
 <h3>Adaugă o știre</h3>
 <label>Titlu</label>
@@ -356,6 +365,7 @@ const appBox = document.getElementById('app-box');
 // Continutul public (cupluri + stiri) se incarca mereu, indiferent de login —
 // asa e vizibil si pentru Googlebot / vizitatori nelogati (bun pentru SEO).
 loadCouples();
+loadTemptations();
 loadNews();
 
 document.getElementById('btn-login').onclick = () => auth.signInWithPopup(provider).catch(e => showToast('Eroare login: ' + e.message));
@@ -455,10 +465,33 @@ const c = doc.data();
 const div = document.createElement('div');
 div.className = 'couple-card';
 const color = STATUS_COLORS[c.status] || 'var(--text-muted)';
-div.innerHTML = `<div class="couple-name">${escapeHtml(c.names)}</div><span class="couple-status" style="color:${color};">${escapeHtml(c.status || '')}</span>`;
+div.innerHTML = `<div class="card-avatar" style="background:${colorForName(c.names)};">${escapeHtml((c.names || '?')[0].toUpperCase())}</div><div class="couple-name">${escapeHtml(c.names)}</div><span class="couple-status" style="color:${color};">${escapeHtml(c.status || '')}</span>`;
 el.appendChild(div);
 });
 if (!qs.size) el.innerHTML = '<p class="muted">Niciun cuplu încă.</p>';
+});
+}
+
+// ============== ISPITE ==============
+const TEMPTATION_STATUS_COLORS = { activ: 'var(--success)', eliminat: 'var(--danger)' };
+function loadTemptations() {
+db.collection('temptations').orderBy('name').onSnapshot(qs => {
+const femEl = document.getElementById('temptations-fem-strip');
+const mascEl = document.getElementById('temptations-masc-strip');
+femEl.innerHTML = '';
+mascEl.innerHTML = '';
+let femCount = 0, mascCount = 0;
+qs.forEach(doc => {
+const t = doc.data();
+const div = document.createElement('div');
+div.className = 'couple-card';
+const color = TEMPTATION_STATUS_COLORS[t.status] || 'var(--text-muted)';
+div.innerHTML = `<div class="card-avatar" style="background:${colorForName(t.name)};">${escapeHtml((t.name || '?')[0].toUpperCase())}</div><div class="couple-name">${escapeHtml(t.name)}</div><span class="couple-status" style="color:${color};">${escapeHtml(t.status || '')}</span>`;
+if (t.gender === 'masculin') { mascEl.appendChild(div); mascCount++; }
+else { femEl.appendChild(div); femCount++; }
+});
+if (!femCount) femEl.innerHTML = '<p class="muted">Nicio ispită încă.</p>';
+if (!mascCount) mascEl.innerHTML = '<p class="muted">Nicio ispită încă.</p>';
 });
 }
 
@@ -705,6 +738,33 @@ const batch = db.batch();
 couples.forEach(c => batch.set(db.collection('couples').doc(c.id), c));
 await batch.commit();
 showToast('Cuplurile au fost inițializate.');
+};
+
+document.getElementById('btn-seed-temptations').onclick = async () => {
+const temptations = [
+{ id: 'rebecca-toma', name: 'Rebecca Toma', gender: 'feminin', status: 'activ' },
+{ id: 'andreea-aurica', name: 'Andreea Aurică (Andrușca)', gender: 'feminin', status: 'activ' },
+{ id: 'daniela-pana', name: 'Daniela Pană', gender: 'feminin', status: 'activ' },
+{ id: 'andreea-h', name: 'Andreea H.', gender: 'feminin', status: 'activ' },
+{ id: 'sandra-vintila', name: 'Sandra Vintilă', gender: 'feminin', status: 'activ' },
+{ id: 'gabriela-barbu', name: 'Gabriela Barbu', gender: 'feminin', status: 'activ' },
+{ id: 'rusu-oana', name: 'Rusu Oana', gender: 'feminin', status: 'activ' },
+{ id: 'frankie', name: 'Frankie', gender: 'feminin', status: 'activ' },
+{ id: 'florina', name: 'Florina', gender: 'feminin', status: 'activ' },
+{ id: 'alberto-grecu', name: 'Alberto Grecu', gender: 'masculin', status: 'activ' },
+{ id: 'rosca-dima', name: 'Roșca Dima', gender: 'masculin', status: 'activ' },
+{ id: 'daniel-alex', name: 'Daniel Alex', gender: 'masculin', status: 'activ' },
+{ id: 'iulian-bogdan', name: 'Iulian Bogdan', gender: 'masculin', status: 'activ' },
+{ id: 'george-jaguarul', name: 'George "Jaguarul"', gender: 'masculin', status: 'activ' },
+{ id: 'gheorghe-mirel', name: 'Gheorghe Mirel', gender: 'masculin', status: 'activ' },
+{ id: 'catalin-brinza', name: 'Cătălin Brînză', gender: 'masculin', status: 'activ' },
+{ id: 'narcis-bujor', name: 'Narcis Bujor', gender: 'masculin', status: 'activ' },
+{ id: 'vlad-calomfir', name: 'Vlad Calomfir', gender: 'masculin', status: 'activ' },
+];
+const batch = db.batch();
+temptations.forEach(t => batch.set(db.collection('temptations').doc(t.id), t));
+await batch.commit();
+showToast('Ispitele au fost inițializate.');
 };
 
 document.getElementById('btn-create-news').onclick = async () => {

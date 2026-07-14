@@ -47,6 +47,12 @@ allow read: if true;
 allow write: if isAdmin();
 }
 
+// temptations/{id}: ispite feminine/masculine (create/editate doar de admin)
+match /temptations/{tempId} {
+allow read: if true;
+allow write: if isAdmin();
+}
+
 // rounds/{roundId}: întrebările/rundele de predicție (create/editate doar de admin)
 match /rounds/{roundId} {
 allow read: if true;
