@@ -169,6 +169,7 @@ textarea, select { width:100%; padding:9px 10px; border-radius:10px; border:1px 
 <button id="theme-btn-coral">Glam</button>
 </div>
 <span class="presence-badge"><span class="presence-dot"></span> <span id="presence-count">1</span> live</span>
+<button class="primary hidden" id="btn-install-app" style="font-size:0.75rem; padding:6px 10px; white-space:nowrap;">📲 Instalează</button>
 </div>
 </div>
 
@@ -297,6 +298,30 @@ window.addEventListener('load', () => {
 navigator.serviceWorker.register('service-worker.js').catch(() => {});
 });
 }
+
+// ============== INSTALARE PWA (buton vizibil in header, nu doar meniul cu 3 puncte) ==============
+// Chrome anunta prin evenimentul "beforeinstallprompt" cand site-ul e instalabil.
+// Prindem evenimentul, il oprim de la promptul lui default (care nu apare mereu),
+// si aratam propriul buton — cand userul apasa pe el, declansam noi promptul nativ.
+let deferredInstallPrompt = null;
+const installBtn = document.getElementById('btn-install-app');
+window.addEventListener('beforeinstallprompt', (e) => {
+e.preventDefault();
+deferredInstallPrompt = e;
+installBtn.classList.remove('hidden');
+});
+installBtn.onclick = async () => {
+if (!deferredInstallPrompt) return;
+deferredInstallPrompt.prompt();
+await deferredInstallPrompt.userChoice;
+deferredInstallPrompt = null;
+installBtn.classList.add('hidden');
+};
+window.addEventListener('appinstalled', () => {
+installBtn.classList.add('hidden');
+deferredInstallPrompt = null;
+showToast('Aplicația a fost instalată! 🎉');
+});
 
 // ============== TEMA (portocaliu tropical / coral glam) — doar vizual, salvat local ==============
 function applyTheme(theme) {
