@@ -3,9 +3,38 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Predicții Insula Iubirii</title>
+<title>Insula Iubirii Sezonul 10 – Cupluri, Bârfe și Predicții Live (Antena 1, 2026)</title>
+<meta name="description" content="Urmărește live Insula Iubirii sezonul 10 de la Antena 1: status actualizat al cuplurilor din Thailanda, ultimele bârfe și știri despre ispite, plus predicții și clasament cu alți fani." />
+<link rel="canonical" href="https://itclogistic.github.io/insulaiubirii/" />
+<meta name="robots" content="index, follow" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#150f0c" />
+
+<!-- Open Graph / social sharing -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Insula Iubirii Live" />
+<meta property="og:title" content="Insula Iubirii Sezonul 10 – Cupluri, Bârfe și Predicții Live" />
+<meta property="og:description" content="Status live al cuplurilor din Insula Iubirii sezonul 10 (Antena 1), cele mai noi bârfe despre ispite și predicții cu fanii." />
+<meta property="og:url" content="https://itclogistic.github.io/insulaiubirii/" />
+<meta property="og:image" content="https://itclogistic.github.io/insulaiubirii/icon-512.png" />
+<meta property="og:locale" content="ro_RO" />
+
+<!-- Twitter card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Insula Iubirii Sezonul 10 – Cupluri, Bârfe și Predicții Live" />
+<meta name="twitter:description" content="Status live al cuplurilor din Insula Iubirii sezonul 10 (Antena 1), cele mai noi bârfe despre ispite și predicții cu fanii." />
+<meta name="twitter:image" content="https://itclogistic.github.io/insulaiubirii/icon-512.png" />
+
+<script type="application/ld+json">
+{
+"@context": "https://schema.org",
+"@type": "WebSite",
+"name": "Insula Iubirii Live – Cupluri, Bârfe și Predicții",
+"url": "https://itclogistic.github.io/insulaiubirii/",
+"description": "Status live al cuplurilor din Insula Iubirii sezonul 10 (Antena 1), bârfe despre ispite și predicții cu fanii.",
+"inLanguage": "ro"
+}
+</script>
 
 <!-- Firebase (compat build — simplu, fara build tools, merge direct pe GitHub Pages) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -143,6 +172,18 @@ textarea, select { width:100%; padding:9px 10px; border-radius:10px; border:1px 
 </div>
 </div>
 
+<!-- ============== CONTINUT PUBLIC (vizibil fara login, pentru SEO si vizitatori) ============== -->
+<section id="public-box">
+<h1 style="font-size:1rem; font-weight:700; color:var(--text); margin:0 0 4px;">Insula Iubirii Sezonul 10 — status live al cuplurilor</h1>
+<p class="muted" style="margin:0 0 16px;">Emisiunea de la Antena 1, filmată în Thailanda. Aici vezi rapid ce cupluri rezistă, ce ispite fac valuri și cele mai noi bârfe, actualizate zilnic.</p>
+
+<h2 class="quiet" style="margin-top:0;">Cuplurile din sezon</h2>
+<div class="couples-strip" id="couples-strip"><p class="muted">Se încarcă...</p></div>
+
+<h2 class="quiet">📰 Bârfe de pe insulă</h2>
+<div id="news-feed"><p class="muted">Se încarcă...</p></div>
+</section>
+
 <!-- ============== LOGIN ============== -->
 <section id="login-box">
 <div class="card" style="text-align:center; padding:28px 20px;">
@@ -180,12 +221,6 @@ textarea, select { width:100%; padding:9px 10px; border-radius:10px; border:1px 
 <button class="ghost" id="btn-logout">Delogare</button>
 </div>
 </div>
-
-<h2 class="quiet" style="margin-top:0;">Cuplurile din sezon</h2>
-<div class="couples-strip" id="couples-strip"><p class="muted">Se încarcă...</p></div>
-
-<h2 class="quiet">📰 Bârfe de pe insulă</h2>
-<div id="news-feed"><p class="muted">Se încarcă...</p></div>
 
 <div class="reactions-bar">
 <button class="reaction-btn" onclick="sendReaction('fire')">🔥<span class="count" id="count-fire">0</span></button>
@@ -293,6 +328,11 @@ const loginBox = document.getElementById('login-box');
 const nicknameBox = document.getElementById('nickname-box');
 const appBox = document.getElementById('app-box');
 
+// Continutul public (cupluri + stiri) se incarca mereu, indiferent de login —
+// asa e vizibil si pentru Googlebot / vizitatori nelogati (bun pentru SEO).
+loadCouples();
+loadNews();
+
 document.getElementById('btn-login').onclick = () => auth.signInWithPopup(provider).catch(e => showToast('Eroare login: ' + e.message));
 document.getElementById('btn-logout').onclick = () => auth.signOut();
 
@@ -347,8 +387,6 @@ document.getElementById('user-score').textContent = currentProfile.score ?? 0;
 const isAdmin = typeof ADMIN_UIDS !== 'undefined' && ADMIN_UIDS.includes(currentUser.uid);
 document.getElementById('admin-section').classList.toggle('hidden', !isAdmin);
 
-loadCouples();
-loadNews();
 loadLeaderboard();
 loadRounds();
 loadPredictionCounts();
