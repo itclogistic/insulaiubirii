@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Predicții Insula Iubirii</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#150f0c" />
+
+<!-- Firebase (compat build — simplu, fara build tools, merge direct pe GitHub Pages) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --hue-a: 40;   /* accent primary hue */
+    --hue-b: 60;   /* accent secondary hue */
+    --hue-name-a: 55;
+
+    --bg: #150f0c;
+    --surface: oklch(0.22 0.025 var(--hue-a));
+    --surface-2: oklch(0.27 0.03 var(--hue-a));
+    --surface-dim: oklch(0.19 0.015 var(--hue-a));
+    --border: oklch(0.4 0.05 50 / 0.3);
+    --border-strong: oklch(0.6 0.15 var(--hue-a) / 0.55);
+    --text: #f5ece4;
+    --text-muted: oklch(0.72 0.02 60);
+    --text-dim: oklch(0.6 0.02 60);
+    --accent: oklch(0.78 0.17 var(--hue-name-a));
+    --accent-strong: oklch(0.7 0.19 var(--hue-a));
+    --danger: oklch(0.68 0.19 25);
+    --success: oklch(0.72 0.17 160);
+    --primary-gradient: linear-gradient(135deg, oklch(0.7 0.19 var(--hue-a)), oklch(0.75 0.18 var(--hue-b)));
+    --glow: 0 0 16px rgba(255,120,40,0.35);
+  }
+  html[data-theme="coral"] {
+    --hue-a: 345;
+    --hue-b: 15;
+    --hue-name-a: 345;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, sans-serif; max-width: 520px; margin: 0 auto; padding: 16px;
+    background: var(--bg);
+    background-image: radial-gradient(circle at 50% 0%, rgba(239,159,39,0.14) 0%, rgba(226,75,74,0.05) 40%, transparent 65%);
+    background-attachment: fixed;
+    color: var(--text);
+    min-height: 100vh;
+  }
+  h1, h2, h3 { font-family: 'Bricolage Grotesque', sans-serif; }
+  .brand-title {
+    font-weight: 800; font-size: 1.5rem; letter-spacing:0.02em;
+    background: var(--primary-gradient); -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 30px rgba(255,140,50,0.25);
+  }
+  .brand-sub { font-size:0.72rem; letter-spacing:0.14em; text-transform:uppercase; color: var(--text-dim); margin-top:2px; }
+  h2 { font-size: 1.1rem; margin: 24px 0 10px; font-weight:700; color: var(--accent); }
+  h2.quiet { font-size:0.85rem; text-transform:uppercase; letter-spacing:0.06em; color: var(--text-dim); margin:20px 0 8px; }
+  h3 { color: var(--text); font-size:0.9rem; }
+  section { margin-bottom: 24px; }
+  a { color: var(--accent); }
+  a:hover { color: oklch(0.85 0.18 var(--hue-name-a)); }
+  button { cursor: pointer; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text); transition: box-shadow 0.15s, border-color 0.15s; font-size:0.85rem; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--primary-gradient); color: #1a0f08; border: none; font-weight: bold; box-shadow: var(--glow); }
+  button.ghost { background: transparent; border:1px solid var(--border); color: var(--text-muted); }
+  input[type=text] { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border); width: 100%; box-sizing: border-box; background: var(--surface); color: var(--text); font-size:0.9rem; }
+  input[type=text]::placeholder { color: var(--text-dim); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+  .card.quiet { background: var(--surface-dim); border-color: oklch(0.4 0.05 50 / 0.18); padding:12px 14px; }
+  .row { display:flex; justify-content: space-between; align-items:center; gap: 10px; }
+  .muted { color: var(--text-muted); font-size: 0.85rem; }
+  .hidden { display: none !important; }
+  .leaderboard-item { display:flex; justify-content:space-between; align-items:center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .rank-badge { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; font-size:0.78rem; font-weight:800; color:#1a0f08; background: oklch(0.4 0.02 60); flex-shrink:0; }
+  .rank-badge.gold { background: oklch(0.8 0.17 85); }
+  .rank-badge.silver { background: oklch(0.82 0.01 70); }
+  .rank-badge.bronze { background: oklch(0.68 0.14 45); }
+  .badge-correct { color: var(--success); font-weight: bold; }
+  .badge-wrong { color: var(--danger); }
+  .oracle-badge { font-size:0.72rem; background: oklch(0.3 0.06 25); color: oklch(0.78 0.17 25); padding:2px 7px; border-radius:6px; font-weight:700; }
+  .admin-box { border: 1px dashed var(--accent); padding: 14px; border-radius: 14px; margin-top: 8px; background: oklch(0.24 0.03 45 / 0.4); }
+  .admin-box label { display:block; margin-top:8px; font-size:0.82rem; color: var(--text-muted); }
+  textarea, select { width:100%; padding:9px 10px; border-radius:10px; border:1px solid var(--border); box-sizing:border-box; background: var(--surface); color: var(--text); font-size:0.85rem; }
+  .presence-badge { display:inline-flex; align-items:center; gap:6px; background: var(--surface-2); border: 1px solid var(--border); border-radius:20px; padding:6px 12px; font-size:0.8rem; }
+  .presence-dot { width:7px; height:7px; border-radius:50%; background: var(--success); display:inline-block; box-shadow: 0 0 6px var(--success); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  .reactions-bar { display:flex; gap:10px; margin: 4px 0 22px; }
+  .reaction-btn { flex:1; font-size:1.35rem; background: var(--surface); border-radius:14px; padding:10px 6px; border: 1px solid var(--border); display:flex; flex-direction:column; align-items:center; gap:4px; color: var(--text); }
+  .reaction-btn:hover { border-color: var(--accent); box-shadow: var(--glow); }
+  .reaction-btn span.count { font-size:0.78rem; color: var(--text-muted); font-weight:bold; }
+  .chat-box { background: var(--surface-dim); border: 1px solid var(--border); border-radius:16px; padding:12px; height:340px; overflow-y:auto; display:flex; flex-direction:column; gap:12px; }
+  .chat-msg-row { display:flex; gap:8px; }
+  .chat-avatar { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.72rem; color:#1a0f08; flex-shrink:0; }
+  .chat-msg-body { flex:1; min-width:0; }
+  .chat-msg { font-size:0.9rem; color: var(--text); line-height:1.4; }
+  .chat-msg b { color: var(--accent); }
+  .chat-reactions { display:flex; gap:6px; margin-top:4px; }
+  .chip-btn { border:none; background: var(--surface-2); color: var(--text-muted); font-size:0.72rem; padding:2px 8px; border-radius:10px; }
+  .chat-empty { margin:auto; text-align:center; color: var(--text-dim); }
+  .chat-input-row { display:flex; gap:8px; margin-top:8px; }
+  .streak-badge { display:inline-block; background: oklch(0.3 0.05 45); color: var(--accent); border-radius:8px; padding:2px 8px; font-size:0.8rem; margin-left:6px; }
+  .couples-strip { display:flex; gap:10px; overflow-x:auto; padding-bottom:10px; margin-bottom:4px; }
+  .couple-card { flex-shrink:0; min-width:132px; background: var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 12px; }
+  .couple-name { font-weight:700; font-size:0.82rem; line-height:1.3; margin-bottom:6px; }
+  .couple-status { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; }
+  .vote-option { position:relative; overflow:hidden; width:100%; text-align:left; border-radius:8px; padding:8px 12px; font-size:0.85rem; font-weight:600; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; background: var(--surface-dim); border:1px solid var(--border); }
+  .vote-option.selected { border-color: var(--border-strong); color: oklch(0.9 0.1 var(--hue-b)); }
+  .vote-fill { position:absolute; inset:0; z-index:0; background: oklch(0.26 0.02 45); }
+  .vote-option.selected .vote-fill { background: oklch(0.32 0.07 var(--hue-a)); }
+  .vote-label, .vote-pct { position:relative; z-index:1; }
+  .vote-pct { font-weight:700; color: var(--text-dim); }
+  .theme-toggle { display:flex; align-items:center; gap:6px; background: var(--surface-2); border:1px solid var(--border); border-radius:20px; padding:4px; }
+  .theme-toggle button { border:none; background:transparent; border-radius:16px; padding:5px 10px; font-size:0.72rem; color: var(--text-dim); }
+  .theme-toggle button.active { background: var(--primary-gradient); color:#1a0f08; font-weight:700; box-shadow:none; }
+  #toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background: var(--surface-2); border: 1px solid var(--border-strong); color: var(--text); padding:10px 18px; border-radius:8px; font-size:0.9rem; opacity:0; pointer-events:none; transition:opacity 0.3s; z-index:1000; max-width:90%; text-align:center; box-shadow: var(--glow); }
+  #toast.show { opacity:0.98; }
+  #header-row { display:flex; align-items:center; justify-content:space-between; padding: 6px 0 14px; }
+</style>
+</head>
+<body>
+
+<div id="header-row">
+  <div>
+    <div class="brand-title">INSULA IUBIRII</div>
+    <div class="brand-sub">Sezonul 10</div>
+  </div>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <div class="theme-toggle" id="theme-toggle">
+      <button id="theme-btn-orange">Tropical</button>
+      <button id="theme-btn-coral">Glam</button>
+    </div>
+    <span class="presence-badge"><span class="presence-dot"></span> <span id="presence-count">1</span> live</span>
+  </div>
+</div>
+
+<!-- ============== LOGIN ============== -->
+<section id="login-box">
+  <div class="card" style="text-align:center; padding:28px 20px;">
+    <div style="font-size:2rem; margin-bottom:8px;">🏝️</div>
+    <div style="font-weight:700; font-size:1.15rem; margin-bottom:6px;">Fii pe fază la fiecare bombă</div>
+    <p class="muted" style="margin:0 0 18px;">Loghează-te ca să faci predicții și să intri pe clasament.</p>
+    <button class="primary" id="btn-login">Autentificare cu Google</button>
+  </div>
+</section>
+
+<!-- ============== SETARE NICKNAME (prima logare) ============== -->
+<section id="nickname-box" class="hidden">
+  <h2>Alege-ți un nickname</h2>
+  <p class="muted">Nimeni nu vede contul tău Google — doar nickname-ul ăsta. Se salvează pe cont, nu se pierde dacă schimbi browser-ul.</p>
+  <input type="text" id="nickname-input" placeholder="ex: FanSecret42" maxlength="20" />
+  <button class="primary" id="btn-save-nickname" style="margin-top:8px;">Salvează</button>
+</section>
+
+<!-- ============== APP PRINCIPAL ============== -->
+<section id="app-box" class="hidden">
+
+  <div class="card row">
+    <div class="row" style="gap:12px; justify-content:flex-start;">
+      <div id="user-avatar" style="width:42px; height:42px; border-radius:50%; background:var(--primary-gradient); display:flex; align-items:center; justify-content:center; font-weight:800; font-family:'Bricolage Grotesque',sans-serif; color:#1a0f08; flex-shrink:0;"></div>
+      <div>
+        <div style="font-weight:700;"><span id="user-nickname"></span></div>
+        <div class="row" style="gap:8px; justify-content:flex-start; font-size:0.8rem; color:var(--text-muted);">
+          <span><span id="user-score">0</span> pct</span>
+          <span id="streak-badge"></span>
+        </div>
+      </div>
+    </div>
+    <div class="row" style="gap:10px; justify-content:flex-end;">
+      <span class="muted" style="background:var(--surface-2); border-radius:8px; padding:4px 9px;">Locul <b id="user-rank" style="color:var(--accent);">—</b></span>
+      <button class="ghost" id="btn-logout">Delogare</button>
+    </div>
+  </div>
+
+  <h2 class="quiet" style="margin-top:0;">Cuplurile din sezon</h2>
+  <div class="couples-strip" id="couples-strip"><p class="muted">Se încarcă...</p></div>
+
+  <div class="reactions-bar">
+    <button class="reaction-btn" onclick="sendReaction('fire')">🔥<span class="count" id="count-fire">0</span></button>
+    <button class="reaction-btn" onclick="sendReaction('shock')">😱<span class="count" id="count-shock">0</span></button>
+    <button class="reaction-btn" onclick="sendReaction('heartbreak')">💔<span class="count" id="count-heartbreak">0</span></button>
+  </div>
+
+  <h2>💬 Chat live</h2>
+  <div class="chat-box" id="chat-box"><p class="muted">Se încarcă...</p></div>
+  <div class="chat-input-row">
+    <input type="text" id="chat-input" placeholder="Scrie un mesaj..." maxlength="300" />
+    <button class="primary" id="btn-chat-send">Trimite</button>
+  </div>
+
+  <h2>🏆 Clasament</h2>
+  <div class="card" style="padding:6px 16px;" id="leaderboard"><p class="muted">Se încarcă...</p></div>
+
+  <div class="row" style="align-items:baseline; margin:24px 0 8px;">
+    <h2 class="quiet" style="margin:0;">🔮 Predicții</h2>
+    <span class="muted" id="active-count"></span>
+  </div>
+  <div id="rounds-active"><p class="muted">Se încarcă...</p></div>
+  <div id="rounds-resolved"></div>
+
+  <!-- ============== PANOU ADMIN (doar Alex) ============== -->
+  <div id="admin-section" class="hidden">
+    <h2>⚙️ Panou admin</h2>
+    <div class="admin-box">
+      <p class="muted"><b style="color:var(--text);">UID-ul tău:</b> <span id="my-uid"></span> — pune-l în ADMIN_UIDS din firebase-config.js și în firestore.rules</p>
+
+      <button id="btn-seed-couples">Inițializează cele 5 cupluri cunoscute</button>
+
+      <h3>Creează o rundă nouă de predicție</h3>
+      <label>Titlu (ex: Bonfire episodul 5)</label>
+      <input type="text" id="round-title" />
+      <label>Întrebare</label>
+      <input type="text" id="round-question" placeholder="Cine crezi că cedează primul azi?" />
+      <label>Opțiuni (separate prin virgulă)</label>
+      <textarea id="round-options" rows="2" placeholder="Maluma, Bianca Iotu, Claudia Ion, Laurențiu, Marian"></textarea>
+      <label>Puncte pentru răspuns corect (implicit 10; pune 50+ pentru bracket de sezon)</label>
+      <input type="text" id="round-points" placeholder="10" />
+      <button class="primary" id="btn-create-round" style="margin-top:8px;">Creează runda</button>
+
+      <h3>Rezolvă o rundă</h3>
+      <div id="admin-resolve-list"><p class="muted">Nicio rundă activă.</p></div>
+
+      <h3>Întreținere live</h3>
+      <button id="btn-reset-reactions">Resetează reacțiile live (înainte de episod nou)</button>
+      <button id="btn-clear-chat" style="margin-left:8px;">Șterge tot chat-ul</button>
+    </div>
+  </div>
+
+</section>
+
+<div id="toast"></div>
+
+<script>
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(() => {});
+  });
+}
+
+// ============== TEMA (portocaliu tropical / coral glam) — doar vizual, salvat local ==============
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('theme-btn-orange').classList.toggle('active', theme !== 'coral');
+  document.getElementById('theme-btn-coral').classList.toggle('active', theme === 'coral');
+  localStorage.setItem('insula-theme', theme);
+}
+document.getElementById('theme-btn-orange').onclick = () => applyTheme('orange');
+document.getElementById('theme-btn-coral').onclick = () => applyTheme('coral');
+applyTheme(localStorage.getItem('insula-theme') || 'orange');
+
+const AVATAR_COLORS = ['oklch(0.7 0.15 55)', 'oklch(0.68 0.15 340)', 'oklch(0.68 0.15 200)', 'oklch(0.68 0.15 110)', 'oklch(0.68 0.15 280)'];
+function colorForName(name) {
+  let h = 0;
+  for (let i = 0; i < (name || '?').length; i++) h = (h * 31 + name.charCodeAt(i)) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[h];
+}
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+const provider = new firebase.auth.GoogleAuthProvider();
+let currentUser = null;
+let currentProfile = null;
+
+const loginBox = document.getElementById('login-box');
+const nicknameBox = document.getElementById('nickname-box');
+const appBox = document.getElementById('app-box');
+
+document.getElementById('btn-login').onclick = () => auth.signInWithPopup(provider).catch(e => showToast('Eroare login: ' + e.message));
+document.getElementById('btn-logout').onclick = () => auth.signOut();
+
+auth.onAuthStateChanged(async (user) => {
+  currentUser = user;
+  if (!user) {
+    loginBox.classList.remove('hidden');
+    nicknameBox.classList.add('hidden');
+    appBox.classList.add('hidden');
+    return;
+  }
+  loginBox.classList.add('hidden');
+
+  const userRef = db.collection('users').doc(user.uid);
+  const snap = await userRef.get();
+
+  if (!snap.exists) {
+    nicknameBox.classList.remove('hidden');
+    appBox.classList.add('hidden');
+  } else {
+    currentProfile = snap.data();
+    showApp();
+  }
+});
+
+document.getElementById('btn-save-nickname').onclick = async () => {
+  const nickname = document.getElementById('nickname-input').value.trim();
+  if (!nickname) return showToast('Scrie un nickname.');
+  await db.collection('users').doc(currentUser.uid).set({
+    nickname, score: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+  });
+  currentProfile = { nickname, score: 0 };
+  nicknameBox.classList.add('hidden');
+  showApp();
+};
+
+function showApp() {
+  appBox.classList.remove('hidden');
+  document.getElementById('user-nickname').textContent = currentProfile.nickname;
+  document.getElementById('user-score').textContent = currentProfile.score ?? 0;
+  document.getElementById('user-avatar').textContent = (currentProfile.nickname || '?')[0].toUpperCase();
+  document.getElementById('my-uid').textContent = currentUser.uid;
+
+  // live update propriul scor
+  db.collection('users').doc(currentUser.uid).onSnapshot(s => {
+    if (s.exists) {
+      currentProfile = s.data();
+      document.getElementById('user-score').textContent = currentProfile.score ?? 0;
+    }
+  });
+
+  const isAdmin = typeof ADMIN_UIDS !== 'undefined' && ADMIN_UIDS.includes(currentUser.uid);
+  document.getElementById('admin-section').classList.toggle('hidden', !isAdmin);
+
+  loadCouples();
+  loadLeaderboard();
+  loadRounds();
+  loadPredictionCounts();
+  if (isAdmin) loadAdminResolveList();
+
+  startPresenceHeartbeat();
+  loadReactions();
+  loadChat();
+  checkDailyStreak();
+}
+
+// ============== PREZENTA LIVE (contor "X oameni online acum") ==============
+function startPresenceHeartbeat() {
+  const presenceRef = db.collection('presence').doc(currentUser.uid);
+  const beat = () => presenceRef.set({
+    nickname: currentProfile.nickname,
+    lastSeen: firebase.firestore.Timestamp.now(),
+  }).catch(() => {});
+  beat();
+  setInterval(beat, 20000); // la fiecare 20s
+
+  db.collection('presence').onSnapshot(qs => {
+    const cutoff = Date.now() - 60000; // consideram "online" daca a dat semn in ultimele 60s
+    let count = 0;
+    qs.forEach(doc => {
+      const d = doc.data();
+      if (d.lastSeen && d.lastSeen.toMillis() > cutoff) count++;
+    });
+    document.getElementById('presence-count').textContent = Math.max(count, 1);
+  });
+}
+
+// ============== CUPLURI ==============
+const STATUS_COLORS = { activ: 'var(--success)', stabil: 'var(--success)', instabil: 'oklch(0.78 0.17 70)', rupt: 'var(--danger)' };
+function loadCouples() {
+  db.collection('couples').onSnapshot(qs => {
+    const el = document.getElementById('couples-strip');
+    el.innerHTML = '';
+    qs.forEach(doc => {
+      const c = doc.data();
+      const div = document.createElement('div');
+      div.className = 'couple-card';
+      const color = STATUS_COLORS[c.status] || 'var(--text-muted)';
+      div.innerHTML = `<div class="couple-name">${escapeHtml(c.names)}</div><span class="couple-status" style="color:${color};">${escapeHtml(c.status || '')}</span>`;
+      el.appendChild(div);
+    });
+    if (!qs.size) el.innerHTML = '<p class="muted">Niciun cuplu încă.</p>';
+  });
+}
+
+// ============== REACTII RAPIDE ==============
+function loadReactions() {
+  db.collection('liveReactions').doc('current').onSnapshot(doc => {
+    const d = doc.exists ? doc.data() : {};
+    document.getElementById('count-fire').textContent = d.fire || 0;
+    document.getElementById('count-shock').textContent = d.shock || 0;
+    document.getElementById('count-heartbreak').textContent = d.heartbreak || 0;
+  });
+}
+
+function sendReaction(type) {
+  db.collection('liveReactions').doc('current').set({
+    [type]: firebase.firestore.FieldValue.increment(1),
+  }, { merge: true });
+}
+
+// ============== CHAT LIVE ==============
+const REACTION_EMOJI = { fire: '🔥', heart: '❤️' };
+function loadChat() {
+  db.collection('chatMessages').orderBy('createdAt', 'desc').limit(50)
+    .onSnapshot(qs => {
+      const box = document.getElementById('chat-box');
+      const msgs = [];
+      qs.forEach(doc => msgs.push({ id: doc.id, ...doc.data() }));
+      msgs.reverse();
+      if (!msgs.length) {
+        box.innerHTML = '<div class="chat-empty"><div style="font-size:1.6rem; margin-bottom:6px;">💬</div><div style="font-size:0.88rem;">Fii primul care scrie ceva.</div></div>';
+        return;
+      }
+      box.innerHTML = msgs.map(m => {
+        const reactions = m.reactions || {};
+        const chips = Object.keys(REACTION_EMOJI).map(type =>
+          `<button class="chip-btn" onclick="reactToMessage('${m.id}','${type}')">${REACTION_EMOJI[type]} ${reactions[type] || 0}</button>`
+        ).join('');
+        return `<div class="chat-msg-row">
+          <div class="chat-avatar" style="background:${colorForName(m.nickname)};">${escapeHtml((m.nickname || '?')[0].toUpperCase())}</div>
+          <div class="chat-msg-body">
+            <div class="chat-msg"><b>${escapeHtml(m.nickname)}</b> ${escapeHtml(m.text)}</div>
+            <div class="chat-reactions">${chips}</div>
+          </div>
+        </div>`;
+      }).join('');
+      box.scrollTop = box.scrollHeight;
+    });
+}
+
+function reactToMessage(id, type) {
+  db.collection('chatMessages').doc(id).update({
+    [`reactions.${type}`]: firebase.firestore.FieldValue.increment(1),
+  }).catch(() => showToast('Reacția necesită o regulă Firestore actualizată (vezi firestore.rules).'));
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+document.getElementById('btn-chat-send').onclick = sendChatMessage;
+document.getElementById('chat-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') sendChatMessage();
+});
+
+function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  db.collection('chatMessages').add({
+    uid: currentUser.uid,
+    nickname: currentProfile.nickname,
+    text,
+    reactions: {},
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+  });
+  input.value = '';
+}
+
+// ============== STREAK ZILNIC ==============
+async function checkDailyStreak() {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const userRef = db.collection('users').doc(currentUser.uid);
+  const snap = await userRef.get();
+  const data = snap.data();
+  if (data.lastCheckIn === todayStr) {
+    renderStreakBadge(data.streak || 0);
+    return;
+  }
+  const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const newStreak = (data.lastCheckIn === yesterdayStr) ? (data.streak || 0) + 1 : 1;
+  await userRef.update({ streak: newStreak, lastCheckIn: todayStr });
+  renderStreakBadge(newStreak);
+}
+
+function renderStreakBadge(streak) {
+  const el = document.getElementById('streak-badge');
+  el.innerHTML = streak > 1 ? `<span class="streak-badge">🔥 ${streak} zile</span>` : '';
+}
+
+// ============== CLASAMENT (live) ==============
+function loadLeaderboard() {
+  db.collection('users').orderBy('score', 'desc').limit(20)
+    .onSnapshot(qs => {
+      const el = document.getElementById('leaderboard');
+      el.innerHTML = '';
+      let i = 1;
+      const rankClass = ['gold', 'silver', 'bronze'];
+      qs.forEach(doc => {
+        const d = doc.data();
+        const item = document.createElement('div');
+        item.className = 'leaderboard-item';
+        const oracleBadge = (d.correctCount || 0) >= 5 ? ' <span class="oracle-badge">ORACOL</span>' : '';
+        const rc = i <= 3 ? rankClass[i - 1] : '';
+        item.innerHTML = `<span style="display:flex; align-items:center; gap:10px;"><span class="rank-badge ${rc}">${i}</span> ${escapeHtml(d.nickname)}${oracleBadge}</span><b>${d.score ?? 0} pct</b>`;
+        el.appendChild(item);
+        if (doc.id === currentUser.uid) document.getElementById('user-rank').textContent = '#' + i;
+        i++;
+      });
+      if (i === 1) el.innerHTML = '<p class="muted" style="padding:12px 0;">Încă nimeni pe clasament — fă prima predicție.</p>';
+    });
+}
+
+// ============== NUMARATOARE VOTURI (procente pe optiuni) ==============
+let predictionCounts = {}; // { roundId: { option: count } }
+function loadPredictionCounts() {
+  db.collection('predictions').onSnapshot(qs => {
+    const counts = {};
+    qs.forEach(doc => {
+      const p = doc.data();
+      if (!p.roundId || !p.guess) return;
+      counts[p.roundId] = counts[p.roundId] || {};
+      counts[p.roundId][p.guess] = (counts[p.roundId][p.guess] || 0) + 1;
+    });
+    predictionCounts = counts;
+    if (window.__lastRoundsSnapshot) renderRounds(window.__lastRoundsSnapshot);
+  });
+}
+
+// ============== RUNDE (predicții) ==============
+function loadRounds() {
+  db.collection('rounds').orderBy('createdAt', 'desc')
+    .onSnapshot(async qs => {
+      const rows = [];
+      for (const doc of qs.docs) {
+        const round = doc.data();
+        const roundId = doc.id;
+        const predSnap = await db.collection('predictions').doc(`${currentUser.uid}_${roundId}`).get();
+        const myGuess = predSnap.exists ? predSnap.data().guess : null;
+        rows.push({ roundId, round, myGuess });
+      }
+      window.__lastRoundsSnapshot = rows;
+      renderRounds(rows);
+    });
+}
+
+function renderRounds(rows) {
+  const activeEl = document.getElementById('rounds-active');
+  const resolvedEl = document.getElementById('rounds-resolved');
+  activeEl.innerHTML = '';
+  resolvedEl.innerHTML = '';
+  let anyActive = false, anyResolved = false;
+
+  for (const { roundId, round, myGuess } of rows) {
+    if (!round.locked) {
+      anyActive = true;
+      const counts = predictionCounts[roundId] || {};
+      const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+      const card = document.createElement('div');
+      card.className = 'card quiet';
+      const optionsHtml = round.options.map(opt => {
+        const selected = myGuess === opt;
+        const pct = Math.round(((counts[opt] || 0) / total) * 100);
+        return `<button type="button" class="vote-option ${selected ? 'selected' : ''}" onclick="submitPrediction('${roundId}','${opt.replace(/'/g, "\\'")}')">
+          <span class="vote-fill" style="width:${pct}%;"></span>
+          <span class="vote-label">${escapeHtml(opt)}</span>
+          <span class="vote-pct">${pct}%</span>
+        </button>`;
+      }).join('');
+      card.innerHTML = `
+        <div style="font-weight:600; font-size:0.92rem;">${escapeHtml(round.title)}</div>
+        <div class="muted" style="margin-bottom:9px;">${escapeHtml(round.question)}</div>
+        ${optionsHtml}
+      `;
+      activeEl.appendChild(card);
+    } else {
+      anyResolved = true;
+      const correct = round.correctAnswer;
+      const gotIt = myGuess && correct && myGuess === correct;
+      const card = document.createElement('div');
+      card.className = 'card quiet';
+      card.innerHTML = `
+        <div style="font-weight:600; font-size:0.88rem;">${escapeHtml(round.title)}</div>
+        <div class="muted" style="font-size:0.8rem; margin-bottom:5px;">Răspuns corect: <b style="color:var(--text);">${escapeHtml(correct ?? '—')}</b></div>
+        <div style="font-size:0.78rem; font-weight:600;" class="${myGuess ? (gotIt ? 'badge-correct' : 'badge-wrong') : 'muted'}">${myGuess ? `Predicția ta: ${escapeHtml(myGuess)} ${gotIt ? '✓ corect' : '✗ greșit'}` : '(nicio predicție)'}</div>
+      `;
+      resolvedEl.appendChild(card);
+    }
+  }
+  document.getElementById('active-count').textContent = anyActive ? `${rows.filter(r => !r.round.locked).length} active` : '';
+  if (!anyActive) activeEl.innerHTML = '<div style="text-align:center; padding:18px 10px;" class="muted"><div style="font-size:1.4rem; margin-bottom:4px;">🌙</div>Nicio predicție activă acum — revino la următorul episod.</div>';
+}
+
+async function submitPrediction(roundId, guess) {
+  await db.collection('predictions').doc(`${currentUser.uid}_${roundId}`).set({
+    uid: currentUser.uid, roundId, guess,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+  });
+  showToast('Predicție salvată!');
+}
+
+// ============== ADMIN ==============
+document.getElementById('btn-seed-couples').onclick = async () => {
+  const couples = [
+    { id: 'maluma-armina', names: 'Marcel "Maluma" & Armina', status: 'stabil' },
+    { id: 'bianca-remi', names: 'Bianca Iotu & Remi Dobre', status: 'instabil' },
+    { id: 'claudia-ionut', names: 'Claudia Ion & Ionuț Mocăniță', status: 'stabil' },
+    { id: 'laurentiu-carmen', names: 'Laurențiu Orășanu & Carmen Ionescu', status: 'rupt' },
+    { id: 'marian-bianca', names: 'Marian Dascălu & Bianca Alina', status: 'instabil' },
+  ];
+  const batch = db.batch();
+  couples.forEach(c => batch.set(db.collection('couples').doc(c.id), c));
+  await batch.commit();
+  showToast('Cuplurile au fost inițializate.');
+};
+
+document.getElementById('btn-create-round').onclick = async () => {
+  const title = document.getElementById('round-title').value.trim();
+  const question = document.getElementById('round-question').value.trim();
+  const optionsRaw = document.getElementById('round-options').value.trim();
+  const pointsRaw = document.getElementById('round-points').value.trim();
+  const points = pointsRaw ? parseInt(pointsRaw, 10) : 10;
+  if (!title || !question || !optionsRaw) return showToast('Completează toate câmpurile.');
+  const options = optionsRaw.split(',').map(s => s.trim()).filter(Boolean);
+  await db.collection('rounds').add({
+    title, question, options, locked: false, correctAnswer: null, points,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+  });
+  document.getElementById('round-title').value = '';
+  document.getElementById('round-question').value = '';
+  document.getElementById('round-options').value = '';
+  document.getElementById('round-points').value = '';
+  showToast('Runda a fost creată.');
+};
+
+document.getElementById('btn-reset-reactions').onclick = async () => {
+  await db.collection('liveReactions').doc('current').set({ fire: 0, shock: 0, heartbreak: 0 });
+  showToast('Reacțiile live au fost resetate.');
+};
+
+let clearChatArmed = false;
+document.getElementById('btn-clear-chat').onclick = async (e) => {
+  if (!clearChatArmed) {
+    clearChatArmed = true;
+    e.target.textContent = 'Sigur? Apasă din nou ca să ștergi';
+    setTimeout(() => { clearChatArmed = false; e.target.textContent = 'Șterge tot chat-ul'; }, 4000);
+    return;
+  }
+  clearChatArmed = false;
+  e.target.textContent = 'Șterge tot chat-ul';
+  const snap = await db.collection('chatMessages').get();
+  const batch = db.batch();
+  snap.forEach(doc => batch.delete(doc.ref));
+  await batch.commit();
+  showToast('Chatul a fost șters.');
+};
+
+function loadAdminResolveList() {
+  db.collection('rounds').orderBy('createdAt', 'desc').onSnapshot(qs => {
+    const el = document.getElementById('admin-resolve-list');
+    el.innerHTML = '';
+    let any = false;
+    qs.forEach(doc => {
+      const round = doc.data();
+      const roundId = doc.id;
+      if (round.locked && round.correctAnswer) return; // deja rezolvată complet
+      any = true;
+      const optionsHtml = round.options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <b>${round.title}</b> ${round.locked ? '<span class="muted">(blocată)</span>' : ''}
+        <p class="muted">${round.question}</p>
+        ${!round.locked ? `<button onclick="lockRound('${roundId}')">Blochează runda</button>` : ''}
+        <label>Răspuns corect:</label>
+        <select id="answer-${roundId}"><option value="">-- alege --</option>${optionsHtml}</select>
+        <button class="primary" style="margin-top:6px;" onclick="resolveRound('${roundId}')">Calculează scor</button>
+      `;
+      el.appendChild(card);
+    });
+    if (!any) el.innerHTML = '<p class="muted">Nicio rundă de rezolvat.</p>';
+  });
+}
+
+async function lockRound(roundId) {
+  await db.collection('rounds').doc(roundId).update({ locked: true });
+}
+
+async function resolveRound(roundId) {
+  const select = document.getElementById(`answer-${roundId}`);
+  const correctAnswer = select.value;
+  if (!correctAnswer) return showToast('Alege răspunsul corect.');
+
+  const roundSnap = await db.collection('rounds').doc(roundId).get();
+  const pointsForRound = (roundSnap.data() && roundSnap.data().points) || 10;
+
+  await db.collection('rounds').doc(roundId).update({ locked: true, correctAnswer });
+
+  // calculeaza scor pentru toti cei care au ghicit
+  const predsSnap = await db.collection('predictions').where('roundId', '==', roundId).get();
+  const batch = db.batch();
+  let winners = 0;
+  for (const doc of predsSnap.docs) {
+    const pred = doc.data();
+    if (pred.guess === correctAnswer) {
+      winners++;
+      const userRef = db.collection('users').doc(pred.uid);
+      const userSnap = await userRef.get();
+      const currentScore = userSnap.exists ? (userSnap.data().score || 0) : 0;
+      const currentCorrect = userSnap.exists ? (userSnap.data().correctCount || 0) : 0;
+      batch.update(userRef, { score: currentScore + pointsForRound, correctCount: currentCorrect + 1 });
+    }
+  }
+  await batch.commit();
+  showToast(`Runda rezolvată. ${winners} persoane au ghicit corect (+${pointsForRound} pct fiecare).`);
+}
+</script>
+
+</body>
+</html>
