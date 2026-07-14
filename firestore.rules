@@ -9,73 +9,79 @@
 // ============================================================
 rules_version = '2';
 service cloud.firestore {
-  match /databases/{database}/documents {
+match /databases/{database}/documents {
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
+function isSignedIn() {
+return request.auth != null;
+}
 
-    function isAdmin() {
-      return isSignedIn() && request.auth.uid in ["EjwoVBJZonWiqW7PEjs86vKkj3W2"];
-    }
+function isAdmin() {
+return isSignedIn() && request.auth.uid in ["EjwoVBJZonWiqW7PEjs86vKkj3W2"];
+}
 
-    // users/{uid}: profil, nickname, scor
-    match /users/{userId} {
-      allow read: if true; // clasamentul trebuie citit de toată lumea
-      allow create: if isSignedIn() && request.auth.uid == userId
-                    && request.resource.data.score == 0; // nu-ți poți da singur scor la creare
-      // update: userul își poate schimba doar nickname-ul, NU scorul.
-      // scorul poate fi schimbat doar de admin (când calculează rezultatele).
-      allow update: if isSignedIn() && (
-                      (request.auth.uid == userId
-                        && request.resource.data.score == resource.data.score
-                        && request.resource.data.get('correctCount', 0) == resource.data.get('correctCount', 0))
-                      || isAdmin()
-                    );
-      allow delete: if false;
-    }
+// users/{uid}: profil, nickname, scor
+match /users/{userId} {
+allow read: if true; // clasamentul trebuie citit de toată lumea
+allow create: if isSignedIn() && request.auth.uid == userId
+&& request.resource.data.score == 0; // nu-ți poți da singur scor la creare
+// update: userul își poate schimba doar nickname-ul, NU scorul.
+// scorul poate fi schimbat doar de admin (când calculează rezultatele).
+allow update: if isSignedIn() && (
+(request.auth.uid == userId
+&& request.resource.data.score == resource.data.score
+&& request.resource.data.get('correctCount', 0) == resource.data.get('correctCount', 0))
+|| isAdmin()
+);
+allow delete: if false;
+}
 
-    // couples/{coupleId}: lista de cupluri (creată/editată doar de admin)
-    match /couples/{coupleId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
+// couples/{coupleId}: lista de cupluri (creată/editată doar de admin)
+match /couples/{coupleId} {
+allow read: if true;
+allow write: if isAdmin();
+}
 
-    // rounds/{roundId}: întrebările/rundele de predicție (create/editate doar de admin)
-    match /rounds/{roundId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
+// news/{newsId}: bârfe/știri despre emisiune (adăugate doar de admin)
+match /news/{newsId} {
+allow read: if true;
+allow write: if isAdmin();
+}
 
-    // predictions/{predictionId}: predicțiile userilor
-    match /predictions/{predictionId} {
-      allow read: if true;
-      // userul poate scrie DOAR propria predicție, cu propriul uid în document
-      allow create, update: if isSignedIn()
-                             && request.resource.data.uid == request.auth.uid;
-      allow delete: if false;
-    }
+// rounds/{roundId}: întrebările/rundele de predicție (create/editate doar de admin)
+match /rounds/{roundId} {
+allow read: if true;
+allow write: if isAdmin();
+}
 
-    // presence/{uid}: contor "X oameni online acum" (heartbeat)
-    match /presence/{userId} {
-      allow read: if true;
-      allow write: if isSignedIn() && request.auth.uid == userId;
-    }
+// predictions/{predictionId}: predicțiile userilor
+match /predictions/{predictionId} {
+allow read: if true;
+// userul poate scrie DOAR propria predicție, cu propriul uid în document
+allow create, update: if isSignedIn()
+&& request.resource.data.uid == request.auth.uid;
+allow delete: if false;
+}
 
-    // chatMessages/{id}: chat live in timpul episodului
-    match /chatMessages/{messageId} {
-      allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
-      // update permis doar pentru reacții rapide (🔥❤️) pe un mesaj existent — nu poți schimba textul
-      allow update: if isSignedIn()
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']);
-      allow delete: if isAdmin(); // admin poate moderaliza / sterge tot chatul
-    }
+// presence/{uid}: contor "X oameni online acum" (heartbeat)
+match /presence/{userId} {
+allow read: if true;
+allow write: if isSignedIn() && request.auth.uid == userId;
+}
 
-    // liveReactions/{id}: contor global de reactii rapide (🔥😱💔)
-    match /liveReactions/{docId} {
-      allow read: if true;
-      allow write: if isSignedIn();
-    }
-  }
+// chatMessages/{id}: chat live in timpul episodului
+match /chatMessages/{messageId} {
+allow read: if true;
+allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+// update permis doar pentru reacții rapide (🔥❤️) pe un mesaj existent — nu poți schimba textul
+allow update: if isSignedIn()
+&& request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']);
+allow delete: if isAdmin(); // admin poate moderaliza / sterge tot chatul
+}
+
+// liveReactions/{id}: contor global de reactii rapide (🔥😱💔)
+match /liveReactions/{docId} {
+allow read: if true;
+allow write: if isSignedIn();
+}
+}
 }
